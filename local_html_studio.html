@@ -1,0 +1,562 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#111820">
+<title>Local HTML Studio</title>
+<style>
+:root{
+  color-scheme:dark;
+  --bg:#0f151c;--panel:#151e28;--panel2:#1a2632;--panel3:#202e3b;--line:#2a3947;
+  --text:#e6edf3;--muted:#91a0ae;--accent:#66c7b0;--accent2:#2f9e88;--danger:#e17c7c;
+  --editor:#0c1218;--code:#d5e0e8;--shadow:0 14px 40px #0005;
+  --top:54px;--bottom:26px;--tree:236px;--preview:390px;
+  font-family:Inter,"Segoe UI",Meiryo,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0;background:var(--bg);color:var(--text);overflow:hidden}
+button,input{font:inherit}
+button{border:1px solid var(--line);background:var(--panel2);color:var(--text);border-radius:7px;padding:7px 10px;cursor:pointer;transition:background .15s,border-color .15s}
+button:hover{background:var(--panel3);border-color:#496173}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+button.primary{background:#1c5d56;border-color:#287b6e;color:#eafffa}
+button.primary:hover{background:#26776b}
+button.ghost{background:transparent}
+button.danger{color:#ffaaaa}
+button:disabled{opacity:.4;cursor:not-allowed}
+#app{height:100%;display:flex;flex-direction:column;min-width:0}
+.topbar{height:var(--top);flex:0 0 var(--top);display:flex;align-items:center;gap:12px;padding:0 14px;border-bottom:1px solid var(--line);background:#121a23;z-index:5}
+.brand{display:flex;align-items:center;gap:9px;min-width:190px}
+.brand-mark{width:25px;height:25px;border-radius:7px;background:#1c645b;display:grid;place-items:center;color:#cffff4;font-size:14px;font-weight:800;box-shadow:inset 0 0 0 1px #6ad6bd55}
+.brand-name{font-size:13px;font-weight:700;letter-spacing:.08em}.brand-sub{font-size:10px;color:var(--muted);letter-spacing:.04em;margin-top:2px}
+.top-actions{display:flex;align-items:center;gap:7px;margin-left:auto}.top-actions button{font-size:12px;white-space:nowrap}
+#saveState{font-size:11px;color:var(--muted);min-width:74px;text-align:right}
+.workspace{position:relative;display:flex;flex:1;min-height:0;overflow:hidden}
+.sidebar{width:var(--tree);flex:0 0 var(--tree);background:var(--panel);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;z-index:2}
+.side-head{height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-bottom:1px solid var(--line);font-size:11px;font-weight:700;letter-spacing:.1em;color:#b9c6d0}
+.side-actions{display:flex;gap:4px}.icon-btn{width:27px;height:27px;padding:0;display:grid;place-items:center;font-size:16px;line-height:1}
+.file-tree{overflow:auto;flex:1;padding:8px 7px 12px}
+.tree-root{display:flex;align-items:center;gap:8px;padding:7px 8px;font-size:11px;color:#9fadb9;font-weight:700;letter-spacing:.06em}
+.tree-root .folder{color:#d3b879}
+.file-item{display:flex;align-items:center;gap:8px;padding:7px 9px 7px 15px;border-radius:6px;cursor:pointer;font-size:12px;color:#c4d0d9;min-width:0;user-select:none;border:1px solid transparent}
+.file-item:hover{background:#202d39}.file-item.active{background:#203a3a;border-color:#2d6961;color:#e9fffa}
+.file-icon{width:16px;flex:0 0 16px;text-align:center;font-size:11px;color:#8fa6b8}.file-item[data-kind="html"] .file-icon{color:#e49b69}.file-item[data-kind="css"] .file-icon{color:#72a9ec}.file-item[data-kind="js"] .file-icon{color:#e4ca71}.file-item[data-kind="image"] .file-icon{color:#83c9a5}.file-item[data-kind="audio"] .file-icon{color:#c39ae8}
+.file-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1}.file-size{font-size:10px;color:#6f8190;flex:0 0 auto}
+.side-foot{border-top:1px solid var(--line);padding:10px 12px;color:#8495a3;font-size:10px;line-height:1.6}
+.editor-area{display:flex;flex-direction:column;flex:1;min-width:0;background:var(--editor)}
+.editor-tabs{height:39px;flex:0 0 39px;background:#131c25;border-bottom:1px solid var(--line);display:flex;align-items:stretch;overflow:auto;scrollbar-width:thin}
+.tab{display:flex;align-items:center;gap:8px;padding:0 13px;border-right:1px solid #263442;color:#91a0ad;font-size:11px;white-space:nowrap;cursor:pointer;min-width:0}
+.tab.active{background:var(--editor);color:#e2edf4;border-top:2px solid var(--accent);padding-top:0}
+.tab .tab-close{font-size:14px;color:#758795;margin-left:2px;opacity:.6}.tab .tab-close:hover{color:#fff;opacity:1}
+.editor-toolbar{height:38px;flex:0 0 38px;display:flex;align-items:center;gap:7px;padding:0 12px;background:#101820;border-bottom:1px solid #202d39}
+.path-label{font-size:11px;color:#91a2b0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.toolbar-spacer{flex:1}
+.editor-toolbar button{font-size:11px;padding:5px 8px}
+.editor-shell{display:flex;flex:1;min-height:0;position:relative;overflow:hidden}
+.gutter{width:48px;flex:0 0 48px;overflow:hidden;background:#0e151c;color:#566673;text-align:right;padding:13px 10px 30px 0;font:12px/1.65 Consolas,"Cascadia Code",monospace;user-select:none;white-space:pre}
+#codeEditor{flex:1;min-width:0;resize:none;border:0;outline:0;background:var(--editor);color:var(--code);padding:13px 16px 40px 12px;font:12.5px/1.65 Consolas,"Cascadia Code","SFMono-Regular",monospace;tab-size:2;white-space:pre;overflow:auto;caret-color:#8be0cd;spellcheck:false}
+#codeEditor::selection{background:#315e67}
+.binary-view{flex:1;display:none;overflow:auto;padding:28px;color:#aab8c3;background:#0e151c}
+.binary-card{max-width:480px;margin:0 auto;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:20px}
+.binary-preview{display:grid;place-items:center;min-height:130px;background:#0d141b;border:1px solid var(--line);border-radius:7px;margin:14px 0;color:#7f93a3;overflow:hidden}
+.binary-preview img{max-width:100%;max-height:220px;object-fit:contain}.binary-preview audio,.binary-preview video{max-width:100%}
+.binary-meta{font-size:12px;line-height:1.8;color:#99a9b6}
+.empty-state{height:100%;display:grid;place-items:center;color:#718392;text-align:center;font-size:12px;line-height:1.9;padding:24px}
+.preview-panel{width:var(--preview);flex:0 0 var(--preview);min-width:0;background:#18232d;border-left:1px solid var(--line);display:flex;flex-direction:column;transition:width .18s,flex-basis .18s;position:relative;z-index:2}
+.preview-panel.hidden{width:0;flex-basis:0;border:0;overflow:hidden}
+.preview-head{height:44px;flex:0 0 44px;display:flex;align-items:center;gap:8px;padding:0 11px;border-bottom:1px solid var(--line);font-size:11px;font-weight:700;color:#bac7d1}
+.preview-head .spacer{flex:1}.preview-head button{padding:5px 8px;font-size:11px}
+.preview-frame-wrap{flex:1;min-height:0;padding:10px;background:#111922}
+#previewFrame{width:100%;height:100%;border:1px solid #344554;background:#fff;border-radius:5px}
+.preview-note{height:25px;flex:0 0 25px;font-size:10px;color:#8092a0;padding:5px 10px;border-top:1px solid var(--line)}
+.workspace.preview-full .sidebar,.workspace.preview-full .editor-area{display:none}
+.workspace.preview-full .preview-panel{position:absolute;inset:0;width:100%;height:100%;z-index:4;border:0}
+.workspace.preview-full .preview-frame-wrap{padding:0}.workspace.preview-full #previewFrame{border:0;border-radius:0}
+.statusbar{height:var(--bottom);flex:0 0 var(--bottom);display:flex;align-items:center;gap:15px;padding:0 10px;background:#17222c;border-top:1px solid var(--line);font-size:10px;color:#8293a1}
+.statusbar .spacer{flex:1}.statusbar span{white-space:nowrap}
+.overlay{position:fixed;inset:0;background:#05090dcc;z-index:20;display:none;align-items:center;justify-content:center;padding:18px}
+.overlay.show{display:flex}.dialog{width:min(440px,100%);background:#17232e;border:1px solid #40515f;border-radius:12px;box-shadow:var(--shadow);padding:18px}
+.dialog h2{font-size:15px;margin:0 0 14px}.dialog p{font-size:12px;color:#9babb8;line-height:1.6}.dialog input{width:100%;background:#0e151c;border:1px solid #40515f;border-radius:6px;color:var(--text);padding:10px;font-size:13px;margin:7px 0 14px}.dialog-actions{display:flex;justify-content:flex-end;gap:7px}
+.toast{position:fixed;bottom:42px;left:50%;transform:translate(-50%,12px);background:#263b45;border:1px solid #52746e;color:#e4fff8;padding:9px 14px;border-radius:8px;font-size:11px;opacity:0;pointer-events:none;transition:.2s;z-index:30;box-shadow:var(--shadow)}.toast.show{opacity:1;transform:translate(-50%,0)}
+.mobile-menu{display:none}
+@media(max-width:900px){:root{--tree:190px;--preview:320px}}
+@media(max-width:680px){
+  .topbar{padding:0 8px;gap:6px}.brand{min-width:0}.brand-sub{display:none}.brand-name{font-size:11px}.top-actions{gap:4px}.top-actions button{padding:6px 7px;font-size:10px}.top-actions .optional{display:none}#saveState{min-width:0;font-size:9px}
+  .workspace{display:grid;grid-template-columns:1fr;grid-template-rows:1fr}
+  .sidebar{position:absolute;inset:0 auto 0 0;width:min(82vw,270px);transform:translateX(-101%);transition:transform .2s;box-shadow:var(--shadow)}.sidebar.mobile-open{transform:translateX(0)}
+  .editor-area{grid-area:1/1}.preview-panel{position:absolute;inset:0 0 0 auto;width:100%;transform:translateX(101%);transition:transform .2s;width:100%;flex-basis:100%;border-left:0}.preview-panel.mobile-open{transform:translateX(0)}.preview-panel.hidden{display:none}
+  .mobile-menu{display:inline-grid}.editor-toolbar{padding:0 7px}.editor-toolbar .hide-mobile{display:none}.gutter{width:35px;flex-basis:35px;padding-right:7px}#codeEditor{font-size:12px;padding-left:9px}
+  .workspace.preview-full .preview-panel{transform:none}.statusbar{gap:8px}.statusbar .hide-mobile{display:none}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="topbar">
+    <div class="brand"><div class="brand-mark">&lt;/&gt;</div><div><div class="brand-name">LOCAL HTML STUDIO</div><div class="brand-sub">SINGLE-FILE PROJECT WORKSPACE</div></div></div>
+    <div class="top-actions">
+      <button class="ghost mobile-menu" id="treeToggle" title="ファイル一覧">☰</button>
+      <button id="newFileBtn" class="optional">＋ ファイル</button>
+      <button id="addFilesBtn">＋ 追加</button>
+      <button id="previewToggle" class="optional">プレビュー</button>
+      <button id="exportBtn" class="optional">ZIP書き出し</button>
+      <button id="saveBtn" class="primary">保存</button>
+      <span id="saveState">読み込み中…</span>
+    </div>
+  </header>
+  <main class="workspace" id="workspace">
+    <aside class="sidebar" id="sidebar">
+      <div class="side-head"><span>EXPLORER</span><div class="side-actions"><button class="icon-btn" id="newTextBtn" title="新規テキストファイル">＋</button><button class="icon-btn" id="uploadBtn" title="ファイルを追加">⇧</button></div></div>
+      <div class="file-tree" id="fileTree"><div class="tree-root"><span class="folder">▾</span><span>PROJECT /</span></div></div>
+      <div class="side-foot">index.html は固定エントリです。<br>追加ファイルはすべて同じ階層に保存。<br>動的なURLには projectURL('file.ext') を利用できます。</div>
+    </aside>
+    <section class="editor-area">
+      <div class="editor-tabs" id="editorTabs"></div>
+      <div class="editor-toolbar"><button class="mobile-menu" id="mobileFiles">ファイル</button><span class="path-label" id="pathLabel">index.html</span><span class="toolbar-spacer"></span><button id="downloadCurrent" class="hide-mobile">↓ ダウンロード</button><button id="renameBtn" class="hide-mobile">名前変更</button><button id="deleteBtn" class="danger hide-mobile">削除</button><button id="runBtn" class="primary">▶ 実行</button><button id="showPreviewMobile" class="mobile-menu">表示</button></div>
+      <div class="editor-shell" id="editorShell">
+        <div class="gutter" id="gutter">1</div>
+        <textarea id="codeEditor" spellcheck="false" autocapitalize="off" autocomplete="off" autocorrect="off" aria-label="コードエディタ"></textarea>
+        <div class="binary-view" id="binaryView"></div>
+        <div class="empty-state" id="emptyState" style="display:none">ファイルを選択するか、新しいファイルを作成してください。</div>
+      </div>
+    </section>
+    <aside class="preview-panel" id="previewPanel">
+      <div class="preview-head"><span>PREVIEW</span><span class="spacer"></span><button id="refreshPreview" title="更新">↻ 更新</button><button id="expandPreview" title="全画面表示">⛶ 全画面</button><button id="hidePreview" title="プレビューを閉じる">×</button></div>
+      <div class="preview-frame-wrap"><iframe id="previewFrame" title="プロジェクトプレビュー" sandbox="allow-scripts allow-same-origin allow-forms allow-modals"></iframe></div>
+      <div class="preview-note">プレビューはプロジェクトのコードを実行します。信頼できるコードのみ実行してください。</div>
+    </aside>
+  </main>
+  <footer class="statusbar"><span id="fileTypeStatus">HTML</span><span id="lineStatus">Ln 1, Col 1</span><span id="encodingStatus">UTF-8</span><span class="spacer"></span><span class="hide-mobile">IndexedDB 保存</span><span id="projectStatus">0 files</span></footer>
+</div>
+<input type="file" id="fileInput" multiple hidden>
+<div class="overlay" id="dialogOverlay"><div class="dialog"><h2 id="dialogTitle">新しいファイル</h2><p id="dialogMessage">ファイル名を入力してください。</p><input id="dialogInput" type="text" autocomplete="off" spellcheck="false"><div class="dialog-actions"><button id="dialogCancel">キャンセル</button><button class="primary" id="dialogOK">作成</button></div></div></div>
+<div class="toast" id="toast"></div>
+<script>
+'use strict';
+(() => {
+  const DB_NAME = 'LocalHTMLStudioDB';
+  const DB_VERSION = 1;
+  const STORE = 'projectFiles';
+  const STARTER = {
+    'index.html': `<!doctype html>\n<html lang="ja">\n<head>\n  <meta charset="utf-8">\n  <meta name="viewport" content="width=device-width, initial-scale=1">\n  <title>My HTML Project</title>\n  <link rel="stylesheet" href="style.css">\n</head>\n<body>\n  <main class="card">\n    <p class="eyebrow">LOCAL PROJECT</p>\n    <h1>Hello, HTML.</h1>\n    <p>左のファイル一覧からHTML・CSS・JavaScriptを編集できます。</p>\n    <button id="demoButton">クリックして確認</button>\n    <p id="message" class="message">JavaScriptの動作確認エリア</p>\n  </main>\n  <script src="app.js"><\/script>\n</body>\n</html>`,
+    'style.css': `* { box-sizing: border-box; }\nbody { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #edf3f1; color: #233b38; font-family: system-ui, sans-serif; }\n.card { width: min(560px, 100%); padding: 36px; border: 1px solid #d1dfda; border-radius: 16px; background: white; box-shadow: 0 16px 45px #23443a12; }\n.eyebrow { color: #448779; font-size: 11px; letter-spacing: .14em; font-weight: 700; }\nh1 { margin: 8px 0; font-size: clamp(32px, 7vw, 52px); letter-spacing: -.04em; }\np { line-height: 1.8; }\nbutton { padding: 10px 16px; border: 0; border-radius: 7px; background: #237b6b; color: white; cursor: pointer; }\n.message { color: #568278; font-size: 13px; }`,
+    'app.js': `const button = document.querySelector('#demoButton');\nconst message = document.querySelector('#message');\nbutton.addEventListener('click', () => {\n  message.textContent = 'JavaScriptとHTMLの連携が動作しています。';\n});`
+  };
+
+  const $ = (id) => document.getElementById(id);
+  const state = { db:null, files:new Map(), active:'index.html', dirty:false, saving:false, saveTimer:null, previewURLs:new Map(), changed:new Set(), revision:0, openTabs:['index.html'], previewOpen:true, previewFull:false, dialogResolve:null, lastCursor:{start:0,end:0} };
+  const editor = $('codeEditor');
+  const fileTree = $('fileTree');
+  const previewFrame = $('previewFrame');
+  const previewPanel = $('previewPanel');
+  const workspace = $('workspace');
+
+  function notify(message) {
+    const el = $('toast'); el.textContent = message; el.classList.add('show');
+    clearTimeout(notify.timer); notify.timer = setTimeout(() => el.classList.remove('show'), 2200);
+  }
+  function formatSize(n) {
+    if (n < 1024) return `${n} B`;
+    if (n < 1024*1024) return `${(n/1024).toFixed(1)} KB`;
+    return `${(n/1024/1024).toFixed(1)} MB`;
+  }
+  function ext(name) { return name.includes('.') ? name.split('.').pop().toLowerCase() : ''; }
+  function fileKind(name) {
+    const e = ext(name);
+    if (e === 'html' || e === 'htm') return 'html';
+    if (e === 'css') return 'css';
+    if (['js','mjs','cjs','ts'].includes(e)) return 'js';
+    if (['png','jpg','jpeg','gif','svg','webp','avif','bmp','ico'].includes(e)) return 'image';
+    if (['mp3','wav','ogg','m4a','aac','flac'].includes(e)) return 'audio';
+    if (['mp4','webm','mov','m4v'].includes(e)) return 'video';
+    if (['json','txt','md','xml','csv','svg','yml','yaml','toml','glsl','py','php','sh'].includes(e)) return 'text';
+    return 'binary';
+  }
+  function mimeFor(name) {
+    const e = ext(name);
+    const map = {html:'text/html',htm:'text/html',css:'text/css',js:'text/javascript',mjs:'text/javascript',cjs:'text/javascript',json:'application/json',txt:'text/plain',md:'text/markdown',svg:'image/svg+xml',png:'image/png',jpg:'image/jpeg',jpeg:'image/jpeg',gif:'image/gif',webp:'image/webp',avif:'image/avif',bmp:'image/bmp',ico:'image/x-icon',mp3:'audio/mpeg',wav:'audio/wav',ogg:'audio/ogg',m4a:'audio/mp4',aac:'audio/aac',flac:'audio/flac',mp4:'video/mp4',webm:'video/webm',pdf:'application/pdf',xml:'application/xml',csv:'text/csv',woff:'font/woff',woff2:'font/woff2',ttf:'font/ttf',otf:'font/otf'};
+    return map[e] || 'application/octet-stream';
+  }
+  function isTextFile(name, file) {
+    const kind = fileKind(name);
+    if (ext(name)==='svg' || ['html','css','js','text'].includes(kind)) return true;
+    return file && (file.type.startsWith('text/') || /json|xml|javascript/.test(file.type));
+  }
+  function validName(name) {
+    const cleaned = name.trim().replace(/[\\/:*?"<>|]/g, '_');
+    return cleaned && cleaned !== '.' && cleaned !== '..' && cleaned.length <= 120 ? cleaned : null;
+  }
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(DB_NAME, DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, {keyPath:'name'});
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  function txStore(mode='readonly') { return state.db.transaction(STORE, mode).objectStore(STORE); }
+  function dbGetAll() {
+    return new Promise((resolve,reject) => { const r=txStore().getAll(); r.onsuccess=()=>resolve(r.result); r.onerror=()=>reject(r.error); });
+  }
+  function dbPut(record) {
+    return new Promise((resolve,reject) => { const tx=state.db.transaction(STORE,'readwrite'); tx.objectStore(STORE).put(record); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); });
+  }
+  function dbDelete(name) {
+    return new Promise((resolve,reject) => { const tx=state.db.transaction(STORE,'readwrite'); tx.objectStore(STORE).delete(name); tx.oncomplete=()=>resolve(); tx.onerror=()=>reject(tx.error); });
+  }
+  async function initialize() {
+    try {
+      state.db = await openDB();
+      const records = await dbGetAll();
+      for (const record of records) state.files.set(record.name, record);
+      if (!state.files.has('index.html')) {
+        for (const [name, text] of Object.entries(STARTER)) {
+          const record = {name, type:mimeFor(name), text, size:new Blob([text]).size, updated:Date.now()};
+          state.files.set(name,record); await dbPut(record);
+        }
+      }
+      $('saveState').textContent = '保存済み';
+      renderTree(); renderTabs(); selectFile(state.files.has(state.active) ? state.active : 'index.html');
+      await runPreview(); updateProjectStatus();
+    } catch (error) {
+      $('saveState').textContent = 'DBエラー';
+      notify('IndexedDBを初期化できませんでした: ' + error.message);
+      $('emptyState').style.display='grid'; editor.style.display='none'; $('gutter').style.display='none';
+    }
+  }
+  function sortedFiles() {
+    return [...state.files.keys()].sort((a,b) => a === 'index.html' ? -1 : b === 'index.html' ? 1 : a.localeCompare(b,'ja'));
+  }
+  function renderTree() {
+    fileTree.innerHTML = '<div class="tree-root"><span class="folder">▾</span><span>PROJECT /</span></div>';
+    for (const name of sortedFiles()) {
+      const f = state.files.get(name); const kind=fileKind(name);
+      const icons = {html:'▤',css:'#',js:'JS',image:'▧',audio:'♫',video:'▶',text:'≡',binary:'◇'};
+      const item=document.createElement('div'); item.className='file-item'+(name===state.active?' active':''); item.dataset.kind=kind; item.title=name;
+      item.innerHTML = `<span class="file-icon"></span><span class="file-name"></span><span class="file-size"></span>`;
+      item.querySelector('.file-icon').textContent=icons[kind]||'◇'; item.querySelector('.file-name').textContent=name; item.querySelector('.file-size').textContent=formatSize(f.size||0);
+      item.addEventListener('click',()=>{selectFile(name); if(innerWidth<=680)$('sidebar').classList.remove('mobile-open');});
+      fileTree.appendChild(item);
+    }
+    updateProjectStatus();
+  }
+  function renderTabs() {
+    const el=$('editorTabs'); el.innerHTML='';
+    state.openTabs = state.openTabs.filter(n=>state.files.has(n));
+    if (!state.openTabs.length && state.files.has('index.html')) state.openTabs=['index.html'];
+    for (const name of state.openTabs) {
+      const tab=document.createElement('div'); tab.className='tab'+(name===state.active?' active':'');
+      const icon=document.createElement('span'); icon.textContent=fileKind(name)==='html'?'▤':fileKind(name)==='css'?'#':fileKind(name)==='js'?'JS':'◇';
+      const label=document.createElement('span'); label.textContent=name;
+      tab.append(icon,label);
+      if(name!=='index.html') {const close=document.createElement('span'); close.className='tab-close'; close.textContent='×'; close.title='タブを閉じる'; close.addEventListener('click',e=>{e.stopPropagation(); closeTab(name);});tab.appendChild(close);}
+      tab.addEventListener('click',()=>selectFile(name)); el.appendChild(tab);
+    }
+  }
+  function closeTab(name) {
+    state.openTabs=state.openTabs.filter(n=>n!==name);
+    if(state.active===name) selectFile(state.openTabs[state.openTabs.length-1]||'index.html'); else renderTabs();
+  }
+  function selectFile(name) {
+    if (!state.files.has(name)) return;
+    const previousBinaryURL=$('binaryView').dataset.objectUrl;
+    if(previousBinaryURL)URL.revokeObjectURL(previousBinaryURL);
+    $('binaryView').dataset.objectUrl='';
+    if (state.dirty) flushEditorToState();
+    state.active=name; if(!state.openTabs.includes(name)) state.openTabs.push(name);
+    const record=state.files.get(name); const textFile=typeof record.text==='string';
+    $('pathLabel').textContent=name; $('fileTypeStatus').textContent=ext(name).toUpperCase()||'FILE';
+    $('renameBtn').disabled=name==='index.html'; $('deleteBtn').disabled=name==='index.html';
+    editor.style.display=textFile?'block':'none'; $('gutter').style.display=textFile?'block':'none'; $('binaryView').style.display=textFile?'none':'block'; $('emptyState').style.display='none';
+    if(textFile) {editor.value=record.text; updateGutter(); updateCursorStatus();}
+    else renderBinary(name,record);
+    renderTree(); renderTabs();
+    $('downloadCurrent').disabled=false;
+    if(innerWidth<=680) $('sidebar').classList.remove('mobile-open');
+  }
+  function renderBinary(name, record) {
+    const v=$('binaryView'); v.innerHTML='';
+    const card=document.createElement('div');card.className='binary-card';
+    const title=document.createElement('div');title.style.cssText='font-size:15px;font-weight:700;color:#e4edf3';title.textContent=name;card.appendChild(title);
+    const preview=document.createElement('div');preview.className='binary-preview';
+    const blob=record.blob instanceof Blob?record.blob:new Blob([record.data||new Uint8Array()],{type:record.type||mimeFor(name)});
+    const url=URL.createObjectURL(blob);
+    if(fileKind(name)==='image'){const img=document.createElement('img');img.src=url;img.alt=name;preview.appendChild(img);}
+    else if(fileKind(name)==='audio'){const audio=document.createElement('audio');audio.controls=true;audio.src=url;preview.appendChild(audio);}
+    else if(fileKind(name)==='video'){const video=document.createElement('video');video.controls=true;video.src=url;video.style.maxWidth='100%';preview.appendChild(video);}
+    else preview.textContent='このファイルはテキスト編集対象ではありません';
+    card.appendChild(preview);
+    const meta=document.createElement('div');meta.className='binary-meta';meta.textContent=`種類: ${record.type||mimeFor(name)}\nサイズ: ${formatSize(record.size||blob.size)}\n保存先: IndexedDB / PROJECT`;card.appendChild(meta);
+    const actions=document.createElement('div');actions.style.cssText='display:flex;gap:8px;margin-top:14px';
+    const dl=document.createElement('button');dl.textContent='↓ ダウンロード';dl.onclick=()=>downloadFile(name);actions.appendChild(dl);
+    if(fileKind(name)==='image'||fileKind(name)==='audio'||fileKind(name)==='video'){const open=document.createElement('button');open.textContent='別タブで開く';open.onclick=()=>window.open(url,'_blank','noopener');actions.appendChild(open);}
+    card.appendChild(actions);v.appendChild(card);
+    v.dataset.objectUrl=url;
+  }
+  function flushEditorToState() {
+    if (!state.active || !state.files.has(state.active) || typeof state.files.get(state.active).text!=='string') return;
+    const rec=state.files.get(state.active); rec.text=editor.value; rec.size=new Blob([rec.text]).size; rec.updated=Date.now(); state.files.set(state.active,rec);
+    state.dirty=false; state.changed.add(state.active); state.revision++; scheduleSave(); renderTree();
+  }
+  function markDirty() {
+    state.dirty=true; $('saveState').textContent='未保存';
+    const rec=state.files.get(state.active); if(rec && typeof rec.text==='string'){rec.text=editor.value;rec.size=new Blob([rec.text]).size;rec.updated=Date.now();state.changed.add(state.active);state.revision++;}
+    updateGutter(); updateCursorStatus(); renderTree();
+    clearTimeout(state.saveTimer); state.saveTimer=setTimeout(()=>saveAll(false),650);
+  }
+  async function saveAll(showMessage=true) {
+    clearTimeout(state.saveTimer);
+    if(state.saving){state.saveTimer=setTimeout(()=>saveAll(showMessage),250);return;}
+    if(state.active && state.files.has(state.active) && typeof state.files.get(state.active).text==='string') {
+      const rec=state.files.get(state.active); rec.text=editor.value; rec.size=new Blob([rec.text]).size; rec.updated=Date.now();
+      if(state.dirty)state.changed.add(state.active);
+    }
+    const revisionAtStart=state.revision;
+    try {
+      state.saving=true; $('saveState').textContent='保存中…';
+      for(const name of [...state.changed]) {const rec=state.files.get(name);if(rec)await dbPut(rec);}
+      state.saving=false;
+      if(state.revision===revisionAtStart){state.changed.clear();state.dirty=false;$('saveState').textContent='保存済み';}
+      else {state.dirty=true;$('saveState').textContent='未保存';state.saveTimer=setTimeout(()=>saveAll(false),300);}
+      renderTree(); updateProjectStatus();
+      if(showMessage && !state.dirty) notify('IndexedDBに保存しました');
+    } catch(e) {state.saving=false;$('saveState').textContent='保存失敗';notify('保存に失敗しました: '+e.message);}
+  }
+  function scheduleSave(){ clearTimeout(state.saveTimer);state.saveTimer=setTimeout(()=>saveAll(false),700); }
+  function updateGutter() {
+    const lines=editor.value.split('\n').length; let s=''; for(let i=1;i<=lines;i++)s+=i+'\n'; $('gutter').textContent=s;
+    $('gutter').scrollTop=editor.scrollTop;
+  }
+  function updateCursorStatus(){
+    const pos=editor.selectionStart; const before=editor.value.slice(0,pos).split('\n');
+    $('lineStatus').textContent=`Ln ${before.length}, Col ${before[before.length-1].length+1}`;
+  }
+  function updateProjectStatus(){ $('projectStatus').textContent=`${state.files.size} files`; }
+
+  function showDialog({title,message,value='',placeholder='',ok='OK'}={}) {
+    $('dialogTitle').textContent=title||'';$('dialogMessage').textContent=message||'';$('dialogInput').value=value;$('dialogInput').placeholder=placeholder;$('dialogOK').textContent=ok;
+    $('dialogOverlay').classList.add('show');$('dialogInput').focus();$('dialogInput').select();
+    return new Promise(resolve=>{state.dialogResolve=resolve;});
+  }
+  function closeDialog(value){$('dialogOverlay').classList.remove('show');if(state.dialogResolve){state.dialogResolve(value);state.dialogResolve=null;}}
+  async function createTextFile(){
+    const raw=await showDialog({title:'新しいファイル',message:'プロジェクト直下に作成するファイル名を入力してください。',placeholder:'script.js',ok:'作成'});if(raw===null)return;
+    const name=validName(raw);if(!name){notify('ファイル名を確認してください');return;}if(state.files.has(name)){notify('同名のファイルがあります');return;}if(name==='index.html'){notify('index.html は固定ファイルです');return;}
+    const rec={name,type:mimeFor(name),text:'',size:0,updated:Date.now()};state.files.set(name,rec);await dbPut(rec);state.openTabs.push(name);selectFile(name);notify(`${name} を作成しました`);
+  }
+  async function renameCurrent(){
+    const old=state.active;if(!old||old==='index.html')return;
+    const raw=await showDialog({title:'ファイル名の変更',message:'拡張子を含む新しいファイル名を入力してください。',value:old,ok:'変更'});if(raw===null)return;
+    const name=validName(raw);if(!name||name==='index.html'||(state.files.has(name)&&name!==old)){notify('その名前は使用できません');return;}
+    if(state.dirty)flushEditorToState();
+    const rec=state.files.get(old);rec.name=name;rec.type=mimeFor(name);state.files.delete(old);state.files.set(name,rec);state.changed.delete(old);await dbDelete(old);await dbPut(rec);
+    state.openTabs=state.openTabs.map(n=>n===old?name:n);state.active=name;renderTree();renderTabs();selectFile(name);notify('ファイル名を変更しました');
+  }
+  async function deleteCurrent(){
+    const name=state.active;if(!name||name==='index.html')return;
+    if(!confirm(`「${name}」を削除しますか？\nこの操作は取り消せません。`))return;
+    if(state.dirty)flushEditorToState();
+    state.files.delete(name);state.changed.delete(name);await dbDelete(name);state.openTabs=state.openTabs.filter(n=>n!==name);state.active='index.html';selectFile('index.html');await runPreview();notify('ファイルを削除しました');
+  }
+  async function importFiles(fileList){
+    if(state.dirty)flushEditorToState();
+    const files=[...fileList];if(!files.length)return;let added=0,skipped=0;const addedNames=[];
+    for(const file of files){
+      const name=validName(file.name);if(!name||name==='index.html'){skipped++;continue;}
+      const text=isTextFile(name,file)?await file.text():null;
+      const rec={name,type:file.type||mimeFor(name),size:file.size,updated:Date.now()};
+      if(text!==null)rec.text=text;else rec.blob=file.slice(0,file.size,file.type||mimeFor(name));
+      state.files.set(name,rec);state.changed.delete(name);await dbPut(rec);added++;addedNames.push(name);
+    }
+    renderTree();await saveAll(false);notify(`${added} 件を追加しました${skipped?`（${skipped} 件スキップ）`:''}`);
+    if(added===1)selectFile(addedNames[0]);else if(addedNames.includes(state.active))selectFile(state.active);
+  }
+  async function downloadFile(name){
+    const rec=state.files.get(name);if(!rec)return;
+    const blob=typeof rec.text==='string'?new Blob([rec.text],{type:rec.type||mimeFor(name)}):rec.blob;
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+  }
+
+  function normalizeRef(raw){
+    if(!raw)return null;let value=raw.trim();
+    if(!value||value.startsWith('#')||/^(?:[a-z]+:|\/\/)/i.test(value)||value.startsWith('data:')||value.startsWith('blob:'))return null;
+    value=value.replace(/\\/g,'/');
+    const suffixMatch=value.match(/[?#].*$/);const suffix=suffixMatch?suffixMatch[0]:'';if(suffix)value=value.slice(0,-suffix.length);
+    try{value=decodeURIComponent(value);}catch{}
+    value=value.replace(/^\.\//,'').replace(/^\/+/, '');
+    const parts=[];for(const p of value.split('/')){if(!p||p==='.')continue;if(p==='..'){if(parts.length)parts.pop();continue;}parts.push(p);}
+    const path=parts.join('/');return path?{path,suffix}:null;
+  }
+  function lookupURL(raw, baseName='index.html'){
+    const parsed=normalizeRef(raw);if(!parsed)return null;
+    const candidates=[parsed.path];
+    if(baseName.includes('/')){const dir=baseName.split('/').slice(0,-1).join('/');candidates.unshift(dir+'/'+parsed.path);}
+    for(const path of candidates){
+      const rec=state.files.get(path);if(rec && state.previewURLs.has(path))return state.previewURLs.get(path)+parsed.suffix;
+    }
+    return null;
+  }
+  function makeBlobURLs(){
+    for(const url of state.previewURLs.values())URL.revokeObjectURL(url);state.previewURLs.clear();
+    for(const [name,rec] of state.files){
+      const blob=typeof rec.text==='string'?new Blob([rec.text],{type:rec.type||mimeFor(name)}):(rec.blob instanceof Blob?rec.blob:new Blob([rec.data||new Uint8Array()],{type:rec.type||mimeFor(name)}));
+      state.previewURLs.set(name,URL.createObjectURL(blob));
+    }
+  }
+  function createCssBlob(path, visiting=new Set()){
+    const key='__css_'+path;
+    if(state.previewURLs.has(key))return state.previewURLs.get(key);
+    const rec=state.files.get(path);
+    if(!rec||typeof rec.text!=='string')return state.previewURLs.get(path)||null;
+    if(visiting.has(path))return state.previewURLs.get(path)||null;
+    visiting.add(path);
+    const css=rewriteCss(rec.text,path,visiting);
+    visiting.delete(path);
+    const url=URL.createObjectURL(new Blob([css],{type:'text/css'}));
+    state.previewURLs.set(key,url);
+    return url;
+  }
+  function rewriteCss(css, filename, visiting=new Set()){
+    css=css.replace(/@import\s+(?:url\(\s*)?(['\"]?)([^'\")\s;]+)\1\s*\)?/gi,(full,q,ref)=>{
+      const path=normalizeRef(ref)?.path;const rec=path&&state.files.get(path);
+      const resolved=rec&&fileKind(path)==='css'?createCssBlob(path,visiting):lookupURL(ref,filename);
+      return resolved?full.replace(ref,resolved):full;
+    });
+    css=css.replace(/url\(\s*(['\"]?)(.*?)\1\s*\)/gi,(full,q,ref)=>{
+      const resolved=lookupURL(ref,filename);return resolved?`url(\"${resolved}\")`:full;
+    });
+    return css;
+  }
+  function createJsBlob(path, visiting=new Set()){
+    const key='__js_'+path;
+    if(state.previewURLs.has(key))return state.previewURLs.get(key);
+    const rec=state.files.get(path);
+    if(!rec||typeof rec.text!=='string')return state.previewURLs.get(path)||null;
+    if(visiting.has(path))return state.previewURLs.get(path)||null;
+    visiting.add(path);
+    const js=rewriteJs(rec.text,path,visiting);
+    visiting.delete(path);
+    const url=URL.createObjectURL(new Blob([js],{type:'text/javascript'}));
+    state.previewURLs.set(key,url);
+    return url;
+  }
+  function rewriteJs(source, filename, visiting=new Set()){
+    // 実在するプロジェクト内ファイルを参照する文字列をBlob URLへ置換。
+    // import / dynamic import / fetch / Audio / img.src 等の一般的な書き方に対応する。
+    const re=/((?:"(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`))/g;
+    return source.replace(re,(literal)=>{
+      if(literal[0]==='`' && literal.includes('${'))return literal;
+      const quote=literal[0];let value=literal.slice(1,-1);
+      if(value.includes('\\')&&!value.startsWith('./')&&!value.startsWith('../'))return literal;
+      const parsed=normalizeRef(value);if(!parsed)return literal;
+      const target=state.files.get(parsed.path);
+      const resolved=target&&typeof target.text==='string'&&fileKind(parsed.path)==='js'
+        ? createJsBlob(parsed.path,visiting)+parsed.suffix
+        : lookupURL(value,filename);
+      if(!resolved)return literal;
+      const escaped=resolved.replace(/\\/g,'\\\\').replace(new RegExp(quote,'g'),'\\'+quote);
+      return quote+escaped+quote;
+    });
+  }
+  function rewriteSrcset(value, filename){
+    return value.split(',').map(part=>{const bits=part.trim().split(/\s+/);const resolved=lookupURL(bits[0],filename);if(resolved)bits[0]=resolved;return bits.join(' ');}).join(', ');
+  }
+  function rewriteHTML(html){
+    // CSS/JSなどの外部ファイル参照をあらかじめBlob URLに置き換える。
+    html=html.replace(/<style\b([^>]*)>([\s\S]*?)<\/style\s*>/gi,(m,a,css)=>`<style${a}>${rewriteCss(css,'index.html')}</style>`);
+    html=html.replace(/\s(style)=(['"])([\s\S]*?)\2/gi,(m,attr,q,val)=>` ${attr}=${q}${rewriteCss(val,'index.html')}${q}`);
+    html=html.replace(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi,(m,attrs,js)=>`<script${attrs}>${rewriteJs(js,'index.html')}<\/script>`);
+    // CSSファイルは元ファイル名を基準にurl()を解決して再生成。
+    html=html.replace(/<link\b([^>]*\bhref=(['"])(.*?)\2[^>]*)>/gi,(m,attrs,q,href)=>{
+      const path=normalizeRef(href)?.path;const rec=path&&state.files.get(path);
+      if(rec&&typeof rec.text==='string'&&fileKind(path)==='css'){
+        const url=createCssBlob(path,new Set());
+        return url?m.replace(href,url):m;
+      }return m;
+    });
+    // <script src>対象のJSも、importや通常の相対パス文字列を処理したコピーに差し替える。
+    html=html.replace(/<script\b([^>]*\bsrc=(['"])(.*?)\2[^>]*)>(?:\s*)<\/script\s*>/gi,(m,attrs,q,src)=>{
+      const path=normalizeRef(src)?.path;const rec=path&&state.files.get(path);
+      if(rec&&typeof rec.text==='string'&&fileKind(path)==='js'){
+        const url=createJsBlob(path,new Set());
+        return url?m.replace(src,url):m;
+      }return m;
+    });
+    html=html.replace(/\b(src|href|poster|data|xlink:href)=(['"])(.*?)\2/gi,(m,attr,q,value)=>{
+      const resolved=lookupURL(value,'index.html');return resolved?`${attr}=${q}${resolved}${q}`:m;
+    });
+    html=html.replace(/\bsrcset=(['"])(.*?)\1/gi,(m,q,value)=>`srcset=${q}${rewriteSrcset(value,'index.html')}${q}`);
+    // 実行時に組み立てるURL用の補助関数。動的なパスには projectURL('file.ext') を利用可能。
+    const projectURLs={};
+    for(const name of state.files.keys()){
+      if(fileKind(name)==='css')projectURLs[name]=createCssBlob(name,new Set());
+      else if(fileKind(name)==='js')projectURLs[name]=createJsBlob(name,new Set());
+      else projectURLs[name]=state.previewURLs.get(name);
+    }
+    const helper=`<script>window.projectURL=function(path){var s=String(path||'').replace(/^\\.\\//,'').replace(/^\\/+/, '');return window.__LOCAL_PROJECT_URLS[s]||path;};window.__LOCAL_PROJECT_URLS=${JSON.stringify(projectURLs)};<\/script>`;
+    if(/<head\b[^>]*>/i.test(html))html=html.replace(/<head\b[^>]*>/i,m=>m+helper);else html=helper+html;
+    return html;
+  }
+  async function runPreview(){
+    if(!state.files.has('index.html'))return;
+    if(state.dirty)flushEditorToState();
+    await saveAll(false);makeBlobURLs();
+    let html=state.files.get('index.html').text||'';
+    html=rewriteHTML(html);
+    previewFrame.srcdoc=html;
+    state.previewOpen=true;previewPanel.classList.remove('hidden');
+    if(innerWidth<=680)previewPanel.classList.remove('mobile-open');
+    $('previewToggle').textContent='プレビュー';
+  }
+  function togglePreview(){
+    if(innerWidth<=680){previewPanel.classList.toggle('mobile-open');return;}
+    const hidden=previewPanel.classList.toggle('hidden');state.previewOpen=!hidden;
+  }
+  function setPreviewFull(){
+    state.previewFull=!state.previewFull;workspace.classList.toggle('preview-full',state.previewFull);
+    $('expandPreview').textContent=state.previewFull?'⛶ 元に戻す':'⛶ 全画面';
+    $('hidePreview').style.display=state.previewFull?'none':'';
+  }
+
+  // 軽量ZIP writer（STORE方式）。外部ライブラリ・通信は使用しない。
+  const crcTable=(()=>{const t=new Uint32Array(256);for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xedb88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}return t;})();
+  function crc32(bytes){let c=0xffffffff;for(const b of bytes)c=crcTable[(c^b)&255]^(c>>>8);return (c^0xffffffff)>>>0;}
+  function u16(n){return [n&255,(n>>>8)&255];}function u32(n){return [n&255,(n>>>8)&255,(n>>>16)&255,(n>>>24)&255];}
+  async function exportZip(){
+    await saveAll(false);const chunks=[];const central=[];let offset=0;const encoder=new TextEncoder();
+    for(const name of sortedFiles()){
+      const rec=state.files.get(name);const data=typeof rec.text==='string'?encoder.encode(rec.text):new Uint8Array(await rec.blob.arrayBuffer());
+      const fname=encoder.encode(name);const crc=crc32(data);const local=new Uint8Array([...u32(0x04034b50),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(fname.length),...u16(0),...fname]);
+      chunks.push(local,data);
+      const cdir=new Uint8Array([...u32(0x02014b50),...u16(20),...u16(20),...u16(0x0800),...u16(0),...u16(0),...u16(0),...u32(crc),...u32(data.length),...u32(data.length),...u16(fname.length),...u16(0),...u16(0),...u16(0),...u16(0),...u32(0),...u32(offset),...fname]);central.push(cdir);
+      offset+=local.length+data.length;
+    }
+    const centralSize=central.reduce((n,c)=>n+c.length,0);const end=new Uint8Array([...u32(0x06054b50),...u16(0),...u16(0),...u16(state.files.size),...u16(state.files.size),...u32(centralSize),...u32(offset),...u16(0)]);
+    const blob=new Blob([...chunks,...central,end],{type:'application/zip'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='html-project.zip';a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);notify('ZIPを書き出しました');
+  }
+
+  editor.addEventListener('input',markDirty);
+  editor.addEventListener('scroll',()=>{$('gutter').scrollTop=editor.scrollTop;});
+  editor.addEventListener('click',updateCursorStatus);editor.addEventListener('keyup',updateCursorStatus);
+  editor.addEventListener('keydown',e=>{
+    if(e.key==='Tab'){e.preventDefault();const start=editor.selectionStart,end=editor.selectionEnd;editor.setRangeText('  ',start,end,'end');markDirty();}
+    if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveAll(true);}
+    if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();runPreview();}
+  });
+  $('saveBtn').onclick=()=>saveAll(true);$('newFileBtn').onclick=createTextFile;$('newTextBtn').onclick=createTextFile;
+  $('addFilesBtn').onclick=()=>$('fileInput').click();$('uploadBtn').onclick=()=>$('fileInput').click();
+  $('fileInput').addEventListener('change',e=>{importFiles(e.target.files);e.target.value='';});
+  $('runBtn').onclick=async()=>{await runPreview();if(innerWidth<=680)previewPanel.classList.add('mobile-open');};$('refreshPreview').onclick=async()=>{await runPreview();if(innerWidth<=680)previewPanel.classList.add('mobile-open');};$('previewToggle').onclick=togglePreview;$('hidePreview').onclick=()=>{if(innerWidth<=680){previewPanel.classList.remove('mobile-open');}else{previewPanel.classList.add('hidden');state.previewOpen=false;}};
+  $('expandPreview').onclick=setPreviewFull;$('exportBtn').onclick=exportZip;$('downloadCurrent').onclick=()=>downloadFile(state.active);$('renameBtn').onclick=renameCurrent;$('deleteBtn').onclick=deleteCurrent;
+  $('dialogCancel').onclick=()=>closeDialog(null);$('dialogOK').onclick=()=>closeDialog($('dialogInput').value);$('dialogOverlay').addEventListener('click',e=>{if(e.target===$('dialogOverlay'))closeDialog(null);});$('dialogInput').addEventListener('keydown',e=>{if(e.key==='Enter')closeDialog($('dialogInput').value);if(e.key==='Escape')closeDialog(null);});
+  $('treeToggle').onclick=()=>$('sidebar').classList.toggle('mobile-open');$('mobileFiles').onclick=()=>$('sidebar').classList.toggle('mobile-open');$('showPreviewMobile').onclick=()=>{previewPanel.classList.remove('hidden');previewPanel.classList.toggle('mobile-open');};
+  window.addEventListener('beforeunload',e=>{if(state.dirty){e.preventDefault();e.returnValue='';}});
+  window.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'){e.preventDefault();saveAll(true);}});
+  initialize();
+})();
+</script>
+</body>
+</html>
